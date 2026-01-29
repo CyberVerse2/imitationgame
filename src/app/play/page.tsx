@@ -94,60 +94,87 @@ export default function PlayPage() {
     }
   }, [playerId, status, isPolling, pollMatchmaking, router]);
 
-  // Poll for messages during game (for human waiting for question)
+  // Unified Game Loop
   useEffect(() => {
-    if (status !== 'playing' || !gameId || role !== 'human') return;
-    
-    const pollMessages = async () => {
-      try {
-        const res = await fetch(`/api/game/message?gameId=${gameId}&round=${currentRound}`);
-        const data = await res.json();
-        
-        if (data.question && !messages[currentRound]?.question) {
-          setQuestion(data.question);
-        }
-      } catch (error) {
-        console.error('Poll messages error:', error);
-      }
-    };
-    
-    const interval = setInterval(pollMessages, 1000);
-    pollMessages();
-    return () => clearInterval(interval);
-  }, [status, gameId, role, currentRound, messages]);
+    if (status !== 'playing' || !gameId) return;
 
-  // Poll for round completion and auto-advance
-  useEffect(() => {
-    if (!waitingForReveal || !gameId) return;
-    
-    const pollReveal = async () => {
+    const pollGameLoop = async () => {
       try {
-        const res = await fetch(`/api/game/message?gameId=${gameId}&round=${currentRound}`);
-        const data = await res.json();
-        
-        if (data.bothRevealed) {
-          addRoundMessages(currentRound, data.question, data.participantA, data.participantB);
-          setWaitingForReveal(false);
-          setQuestion('');
-          setAnswer('');
-          
-          if (currentRound >= totalRounds) {
-            // All rounds complete - time to guess
-            useGameStore.setState({ status: 'guessing' });
-          } else {
-            // Auto-advance to next round
-            nextRound();
+        // Fetch everything in parallel
+        const [msgRes, statusRes] = await Promise.all([
+          fetch(`/api/game/message?gameId=${gameId}&round=${currentRound}`),
+          fetch(`/api/game/status?gameId=${gameId}`),
+        ]);
+        const messagesData = await msgRes.json();
+        const statusData = await statusRes.json();
+
+        // 1. Sync Game Status & Round
+        // If status changed to FINISHED
+        if (statusData.status === 'FINISHED') {
+          setResultState({ isCorrect: false, humanSlot: statusData.humanSlot });
+          useGameStore.setState({ status: 'finished' });
+          return;
+        }
+
+        // Sync Round: If Server is ahead of Local, catch up
+        // IMPORTANT: This creates the "lock step" - Human waits for Server to update
+        if (statusData.currentRound > currentRound) {
+           useGameStore.setState({ 
+             currentRound: statusData.currentRound,
+             currentQuestion: '',
+             myAnswer: '',
+             waitingForOther: false,
+           });
+           setQuestion('');
+           setAnswer('');
+           setWaitingForReveal(false);
+           return; 
+        }
+
+        // 2. Handle Messages (Question & Reveal)
+        // Update Question if we haven't seen it yet
+        if (messagesData.question && !question) {
+          setQuestion(messagesData.question);
+        }
+
+        // Check for Reveal
+        // We look at messagesData.bothRevealed to know if round is done
+        if (messagesData.bothRevealed) {
+          // If we are currently "waiting" locally, this is the moment of reveal
+          if (waitingForReveal) {
+             addRoundMessages(currentRound, messagesData.question, messagesData.participantA, messagesData.participantB);
+             setWaitingForReveal(false); 
+             
+             // INTERROGATOR ONLY: Drive the game forward
+             if (role === 'interrogator') {
+               if (currentRound >= totalRounds) {
+                  useGameStore.setState({ status: 'guessing' });
+               } else {
+                  // Explicitly tell server to advance to next round
+                  await fetch('/api/game/advance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameId, playerId, nextRound: currentRound + 1 }),
+                  });
+                  // We do NOT call nextRound() locally here.
+                  // We wait for the NEXT poll to see statusData.currentRound > currentRound
+                  // This ensures perfect sync.
+               }
+             }
           }
         }
       } catch (error) {
-        console.error('Poll reveal error:', error);
+        console.error('Game loop error:', error);
       }
     };
-    
-    const interval = setInterval(pollReveal, 1500);
-    pollReveal(); // Initial call
+
+    const interval = setInterval(pollGameLoop, 1000); // 1s loop
     return () => clearInterval(interval);
-  }, [waitingForReveal, gameId, currentRound, totalRounds, addRoundMessages, nextRound]);
+  }, [status, gameId, role, currentRound, question, waitingForReveal, totalRounds, playerId, addRoundMessages]);
+
+
+
+
 
   // Submit question (interrogator)
   const submitQuestion = async () => {
@@ -200,10 +227,11 @@ export default function PlayPage() {
     if (!guess || !gameId || !playerId) return;
     
     try {
+      const roundsUsed = Object.keys(messages).length;  // How many rounds were completed
       const res = await fetch('/api/game/guess', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gameId, playerId, guess }),
+        body: JSON.stringify({ gameId, playerId, guess, roundsUsed }),
       });
       
       const data = await res.json();
@@ -277,6 +305,13 @@ export default function PlayPage() {
                 size={70}
               />
             </div>
+          </div>
+          
+          {/* Game ID for debugging */}
+          <div className="text-center mb-4">
+            <span className="text-xs text-[var(--text-secondary)] font-mono opacity-50">
+              Game: {gameId?.slice(-8)}
+            </span>
           </div>
 
           {/* Chat panels */}

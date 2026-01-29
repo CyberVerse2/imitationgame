@@ -39,6 +39,19 @@ export async function POST(request: NextRequest) {
     await prisma.matchmakingQueue.deleteMany({
       where: { playerId },
     });
+
+    // FORCE KILL ALL previous active games for this player
+    // We want a fresh game every time "Find Match" is clicked
+    await prisma.game.updateMany({
+      where: {
+        OR: [
+          { interrogatorId: playerId },
+          { humanPlayerId: playerId },
+        ],
+        status: { in: ['IN_PROGRESS', 'GUESSING', 'WAITING'] },
+      },
+      data: { status: 'FINISHED' },
+    });
     
     // Look for a player with the opposite role
     const oppositeRole = role === 'INTERROGATOR' ? 'HUMAN' : 'INTERROGATOR';

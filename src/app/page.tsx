@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { v4 as uuidv4 } from 'uuid';
 import { useGameStore } from '@/lib/store';
 
 export default function Home() {
@@ -22,21 +21,19 @@ export default function Home() {
 
   const handlePlay = async () => {
     if (!selectedRole) return;
+    if (!username.trim()) {
+      alert('Please enter a username');
+      return;
+    }
     
     setIsRegistering(true);
     
     try {
-      // Generate or get player ID
-      let playerId = localStorage.getItem('playerId');
-      if (!playerId) {
-        playerId = uuidv4();
-        localStorage.setItem('playerId', playerId);
-      }
+      // Use username as playerId
+      const playerId = username.trim().toLowerCase().replace(/\s+/g, '_');
       
       // Save username locally
-      if (username.trim()) {
-        localStorage.setItem('username', username.trim());
-      }
+      localStorage.setItem('username', username.trim());
       
       // Register user in database
       await fetch('/api/user/register', {
@@ -44,7 +41,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           playerId,
-          username: username.trim() || null,
+          username: username.trim(),
         }),
       });
       

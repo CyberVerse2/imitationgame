@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { calculateScore } from '@/lib/scoring';
 
 /**
  * POST /api/game/guess
@@ -7,7 +8,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { gameId, playerId, guess } = await request.json();
+    const { gameId, playerId, guess, roundsUsed } = await request.json();
     
     if (!gameId || !playerId || !guess) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -26,7 +27,14 @@ export async function POST(request: NextRequest) {
     }
     
     const isCorrect = guess === game.humanSlot;
-    const score = isCorrect ? 100 : 0;
+    
+    // Calculate score with bonuses
+    const score = calculateScore(
+      isCorrect,
+      0,  // timeRemaining (not tracked yet)
+      roundsUsed || game.currentRound,  // rounds used
+      0   // streak (not tracked yet)
+    );
     
     // Update game status
     await prisma.game.update({

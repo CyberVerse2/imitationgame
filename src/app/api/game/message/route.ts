@@ -55,18 +55,8 @@ export async function POST(request: NextRequest) {
       
       // Determine which slot the human is in
       const humanSlot = game.humanSlot;
-      const sender = humanSlot === 'A' ? 'participantA' : 'participantB';
-      
-      // Save human's answer (not revealed yet)
-      await prisma.message.create({
-        data: {
-          gameId,
-          round,
-          sender,
-          content,
-          isRevealed: false,
-        },
-      });
+      const humanSender = humanSlot === 'A' ? 'participantA' : 'participantB';
+      const turingSlot = humanSlot === 'A' ? 'participantB' : 'participantA';
       
       // Get the question for this round
       const questionMessage = await prisma.message.findFirst({
@@ -76,9 +66,6 @@ export async function POST(request: NextRequest) {
       if (!questionMessage) {
         return NextResponse.json({ error: 'Question not found' }, { status: 404 });
       }
-      
-      // Generate Turing's response using Mirror Protocol
-      const turingSlot = humanSlot === 'A' ? 'participantB' : 'participantA';
       
       // Get conversation history for context
       const previousMessages = await prisma.message.findMany({
@@ -90,29 +77,41 @@ export async function POST(request: NextRequest) {
         orderBy: { createdAt: 'asc' },
       });
       
-      const history = previousMessages.map(m => ({
+      const history = previousMessages.map((m: { sender: string; content: string }) => ({
         role: m.sender === 'interrogator' ? 'user' as const : 'assistant' as const,
         content: m.content,
       }));
       
-      // Pass the human's answer so Turing can mirror their style
-      const turingResponse = await getTuringResponse(questionMessage.content, content, history);
+      // Generate Turing's response FIRST (before saving anything)
+      let turingResponse: string;
+      try {
+        turingResponse = await getTuringResponse(questionMessage.content, content, history);
+      } catch (turingError) {
+        console.error('Turing API error:', turingError);
+        // Fallback: Generate a simple mirrored response
+        turingResponse = content.length < 20 
+          ? "hmm not sure" 
+          : "that's a good question actually";
+      }
       
-      // Save Turing's response
-      await prisma.message.create({
-        data: {
-          gameId,
-          round,
-          sender: turingSlot,
-          content: turingResponse,
-          isRevealed: false,
-        },
-      });
-      
-      // Mark both answers as revealed
-      await prisma.message.updateMany({
-        where: { gameId, round, sender: { in: ['participantA', 'participantB'] } },
-        data: { isRevealed: true },
+      // Save both answers at once (transaction-like)
+      await prisma.message.createMany({
+        data: [
+          {
+            gameId,
+            round,
+            sender: humanSender,
+            content,
+            isRevealed: true,  // Reveal immediately
+          },
+          {
+            gameId,
+            round,
+            sender: turingSlot,
+            content: turingResponse,
+            isRevealed: true,  // Reveal immediately
+          },
+        ],
       });
       
       return NextResponse.json({ status: 'round_complete' });
@@ -143,9 +142,9 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'asc' },
     });
     
-    const question = messages.find(m => m.sender === 'interrogator');
-    const participantA = messages.find(m => m.sender === 'participantA' && m.isRevealed);
-    const participantB = messages.find(m => m.sender === 'participantB' && m.isRevealed);
+    const question = messages.find((m: { sender: string }) => m.sender === 'interrogator');
+    const participantA = messages.find((m: { sender: string; isRevealed: boolean }) => m.sender === 'participantA' && m.isRevealed);
+    const participantB = messages.find((m: { sender: string; isRevealed: boolean }) => m.sender === 'participantB' && m.isRevealed);
     
     return NextResponse.json({
       question: question?.content || null,
