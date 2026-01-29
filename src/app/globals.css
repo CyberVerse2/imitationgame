@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+:root {
+  /* Cyberpunk color palette */
+  --neon-cyan: #00f5ff;
+  --neon-magenta: #ff00ff;
+  --neon-purple: #9d00ff;
+  --neon-pink: #ff0080;
+  --dark-bg: #0a0a0f;
+  --dark-card: #12121a;
+  --dark-border: #1e1e2e;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--dark-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 245, 255, 0.3), 0 0 40px rgba(0, 245, 255, 0.1);
+}
+
+.glow-magenta {
+  box-shadow: 0 0 20px rgba(255, 0, 255, 0.3), 0 0 40px rgba(255, 0, 255, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+}
+
+/* Card styles */
+.card {
+  background: var(--dark-card);
+  border: 1px solid var(--dark-border);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--neon-cyan);
+}
+
+/* Button styles */
+.btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+  color: black;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 245, 255, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 245, 255, 0.1);
+}
+
+.btn-magenta {
+  background: linear-gradient(135deg, var(--neon-magenta), var(--neon-pink));
+  color: white;
+}
+
+/* Role selection cards */
+.role-card {
+  background: var(--dark-card);
+  border: 2px solid var(--dark-border);
+  border-radius: 20px;
+  padding: 32px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.role-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+}
+
+.role-card.selected {
+  border-color: var(--neon-cyan);
+  background: rgba(0, 245, 255, 0.05);
+}
+
+/* Chat interface */
+.chat-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  height: 100%;
+}
+
+.participant-panel {
+  background: var(--dark-card);
+  border: 2px solid var(--dark-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.participant-panel.participant-a {
+  border-color: var(--neon-cyan);
+}
+
+.participant-panel.participant-b {
+  border-color: var(--neon-magenta);
+}
+
+.message-bubble {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.question-bubble {
+  background: rgba(0, 245, 255, 0.1);
+  border-left: 3px solid var(--neon-cyan);
+}
+
+.answer-bubble {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Input styles */
+.input {
+  background: var(--dark-card);
+  border: 2px solid var(--dark-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--text-primary);
+  font-size: 16px;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--neon-cyan);
+}
+
+.input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Typing indicator */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 12px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--neon-cyan);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Progress dots */
+.progress-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.progress-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--dark-border);
+  transition: all 0.3s;
+}
+
+.progress-dot.active {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.progress-dot.complete {
+  background: var(--neon-purple);
+}
+
+/* Pulse animation for waiting states */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chat-container {
+    grid-template-columns: 1fr;
+  }
+}
