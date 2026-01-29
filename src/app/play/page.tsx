@@ -28,6 +28,7 @@ export default function PlayPage() {
     reset,
   } = useGameStore();
   
+  const [isClient, setIsClient] = useState(false);
   const [isPolling, setIsPolling] = useState(true);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
@@ -40,6 +41,16 @@ export default function PlayPage() {
   const [searchTimeLeft, setSearchTimeLeft] = useState(30);
   const [searchCancelled, setSearchCancelled] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+
+  // Initialize client-side state
+  useEffect(() => {
+    setIsClient(true);
+    if (!playerId) {
+      const storedId = localStorage.getItem('imitation_player_id') || `p_${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem('imitation_player_id', storedId);
+      useGameStore.setState({ playerId: storedId });
+    }
+  }, [playerId]);
 
   // Generate consistent random names for participants
   const participantNames = useMemo(() => {
@@ -367,6 +378,25 @@ export default function PlayPage() {
     reset();
     router.push('/');
   }, [playerId, reset, router]);
+
+  // Default loading state for SSR/initial hydration  
+  if (!isClient) {
+    return (
+      <main className="app-container flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-zinc-900 border-t-[var(--accent-cyan)] animate-spin"></div>
+      </main>
+    );
+  }
+
+  // If we're on the play page but have no role and aren't in a game, go home
+  if (!role && status === 'idle') {
+    router.push('/');
+    return (
+      <main className="app-container flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-zinc-900 border-t-[var(--accent-cyan)] animate-spin"></div>
+      </main>
+    );
+  }
 
   // Render based on status
   if (status === 'matchmaking' || status === 'waiting') {
