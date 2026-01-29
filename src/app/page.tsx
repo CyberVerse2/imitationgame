@@ -47,6 +47,7 @@ export default function Home() {
       
       setPlayer(playerId);
       setRole(selectedRole);
+      localStorage.setItem('imitation_role', selectedRole);
       startMatchmaking();
       router.push('/play');
     } catch (error) {

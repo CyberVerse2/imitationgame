@@ -45,12 +45,23 @@ export default function PlayPage() {
   // Initialize client-side state
   useEffect(() => {
     setIsClient(true);
-    if (!playerId) {
-      const storedId = localStorage.getItem('imitation_player_id') || `p_${Math.random().toString(36).slice(2, 9)}`;
-      localStorage.setItem('imitation_player_id', storedId);
-      useGameStore.setState({ playerId: storedId });
+    
+    // Restore Player ID
+    let currentId = playerId;
+    if (!currentId) {
+      currentId = localStorage.getItem('imitation_player_id') || `p_${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem('imitation_player_id', currentId);
+      useGameStore.setState({ playerId: currentId });
     }
-  }, [playerId]);
+
+    // Restore Role (for page refreshes)
+    if (!role) {
+      const storedRole = localStorage.getItem('imitation_role') as 'interrogator' | 'human' | null;
+      if (storedRole) {
+        useGameStore.setState({ role: storedRole, status: 'matchmaking' });
+      }
+    }
+  }, [playerId, role]);
 
   // Generate consistent random names for participants
   const participantNames = useMemo(() => {
@@ -177,8 +188,11 @@ export default function PlayPage() {
     const timerInterval = setInterval(() => {
       setSearchTimeLeft((prev) => {
         if (prev <= 1) {
-          setSearchCancelled(true);
-          clearInterval(timerInterval);
+          // Only cancel if we aren't currently JOINING a game
+          if (!isJoining) {
+            setSearchCancelled(true);
+            clearInterval(timerInterval);
+          }
           return 0;
         }
         return prev - 1;
