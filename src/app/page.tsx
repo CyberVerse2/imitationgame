@@ -57,95 +57,89 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8">
-      {/* Hero */}
-      <div className="text-center mb-12">
-        <h1 className="text-5xl md:text-7xl font-bold mb-4">
-          <span className="text-[var(--neon-cyan)] glow-text">Imitation</span>{' '}
-          <span className="text-[var(--neon-magenta)] glow-text">Game</span>
+    <main className="app-container">
+      {/* Header */}
+      <div className="flex justify-between items-center py-6 mb-8 border-b border-zinc-900">
+        <h1 className="text-xl font-black italic tracking-tighter">
+          IMITATION GAME<span className="text-[var(--accent-cyan)]">.</span>
         </h1>
-        <p className="text-xl text-[var(--text-secondary)] max-w-xl mx-auto">
-          The classic Turing test. One human, one AI called <strong className="text-[var(--neon-cyan)]">Turing</strong> pretending to be human.
-          Can the interrogator tell them apart?
-        </p>
-      </div>
-
-      {/* Username Input */}
-      <div className="w-full max-w-md mb-8">
-        <label className="block text-sm text-[var(--text-secondary)] mb-2">
-          Your name (for leaderboard)
-        </label>
-        <input
-          className="input w-full"
-          placeholder="Enter your username..."
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          maxLength={20}
-        />
-      </div>
-
-      {/* Role Selection */}
-      <div className="w-full max-w-2xl mb-8">
-        <h2 className="text-2xl font-semibold text-center mb-6">Choose your role</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Interrogator */}
-          <div
-            className={`role-card ${selectedRole === 'interrogator' ? 'selected' : ''}`}
-            onClick={() => setSelectedRole('interrogator')}
-          >
-            <div className="text-4xl mb-4">🔍</div>
-            <h3 className="text-xl font-bold mb-2 text-[var(--neon-cyan)]">Interrogator</h3>
-            <p className="text-[var(--text-secondary)] text-sm">
-              Ask questions to two participants. One is human, one is AI pretending to be human.
-              <br /><strong>Find the real human.</strong>
-            </p>
-          </div>
-
-          {/* Human */}
-          <div
-            className={`role-card ${selectedRole === 'human' ? 'selected' : ''}`}
-            onClick={() => setSelectedRole('human')}
-          >
-            <div className="text-4xl mb-4">🧑</div>
-            <h3 className="text-xl font-bold mb-2 text-[var(--neon-magenta)]">Human</h3>
-            <p className="text-[var(--text-secondary)] text-sm">
-              Just be yourself! Answer questions naturally.
-              <br /><strong>Prove you&apos;re human.</strong>
-            </p>
-          </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-[var(--accent-cyan)] animate-pulse"></div>
+          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Online</span>
         </div>
       </div>
 
-      {/* Play Button */}
-      <button
-        className={`btn btn-primary text-xl px-12 py-4 ${!selectedRole || isRegistering ? 'opacity-50 cursor-not-allowed' : ''}`}
-        onClick={handlePlay}
-        disabled={!selectedRole || isRegistering}
-      >
-        {isRegistering ? 'Connecting...' : 'Find Match'}
-      </button>
+      <div className="flex-1 flex flex-col">
+        {/* Hero Section */}
+        <div className="mb-12 animate-slide-up">
+          <div className="text-label">Game Mode: Classic</div>
+          <h2 className="h1-display mb-4">
+            Imitation<br />
+            <span className="text-[var(--accent-magenta)]">Game</span>
+          </h2>
+          <p className="text-zinc-500 text-sm leading-relaxed max-w-[280px]">
+            The Turing test. One human, one AI. Identify the organic signal among the noise.
+          </p>
+        </div>
 
-      {/* Links */}
-      <div className="mt-6 flex gap-6">
-        <button
-          className="text-sm text-[var(--neon-purple)] hover:underline"
-          onClick={() => router.push('/leaderboard')}
-        >
-          🏆 Leaderboard
-        </button>
-      </div>
+        {/* Username Input */}
+        <div className="mb-12 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="text-label">Player Identity</div>
+          <input
+            className="input-field"
+            placeholder="Enter Name"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            maxLength={20}
+          />
+        </div>
 
-      {/* Rules */}
-      <div className="mt-12 max-w-lg text-center">
-        <h3 className="text-lg font-semibold mb-3 text-[var(--neon-purple)]">How it works</h3>
-        <ol className="text-sm text-[var(--text-secondary)] space-y-2 text-left">
-          <li><span className="text-[var(--neon-cyan)]">1.</span> Interrogator asks a question</li>
-          <li><span className="text-[var(--neon-cyan)]">2.</span> Human answers naturally</li>
-          <li><span className="text-[var(--neon-cyan)]">3.</span> Turing (AI) responds, pretending to be human</li>
-          <li><span className="text-[var(--neon-cyan)]">4.</span> Both answers revealed simultaneously</li>
-          <li><span className="text-[var(--neon-cyan)]">5.</span> After 5 rounds, interrogator guesses who&apos;s human</li>
-        </ol>
+        {/* Role Selection */}
+        <div className="mb-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="text-label mb-4">Choose Signature</div>
+          <div className="role-grid">
+            <button
+              className={`role-card ${selectedRole === 'interrogator' ? 'selected-cyan' : ''}`}
+              onClick={() => setSelectedRole('interrogator')}
+            >
+              <div className="text-3xl mb-3">🔍</div>
+              <div className="text-[10px] font-black uppercase tracking-widest">Interrogator</div>
+            </button>
+            <button
+              className={`role-card ${selectedRole === 'human' ? 'selected-magenta' : ''}`}
+              onClick={() => setSelectedRole('human')}
+            >
+              <div className="text-3xl mb-3">🧑</div>
+              <div className="text-[10px] font-black uppercase tracking-widest">Human</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Play Button */}
+        <div className="mt-auto pb-8 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+          <button
+            className={`btn btn-primary ${!selectedRole || isRegistering ? 'opacity-30' : ''}`}
+            onClick={handlePlay}
+            disabled={!selectedRole || isRegistering}
+          >
+            {isRegistering ? 'Connecting...' : 'Initialize Match'}
+          </button>
+          
+          <div className="flex justify-center gap-6 mt-6">
+            <button
+              className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white transition-colors"
+              onClick={() => router.push('/leaderboard')}
+            >
+              Leaderboard
+            </button>
+            <span className="text-zinc-800">|</span>
+            <button
+              className="text-[10px] font-black uppercase tracking-widest text-zinc-600 hover:text-white transition-colors"
+            >
+              Rules
+            </button>
+          </div>
+        </div>
       </div>
     </main>
   );

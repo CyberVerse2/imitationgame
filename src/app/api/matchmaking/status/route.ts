@@ -16,14 +16,14 @@ export async function GET(request: NextRequest) {
     // Only look for games created in the last 2 minutes (fresh games)
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     
-    // Check if player is in a FRESH game
+    // Check if player is in a game (waiting or active)
     const game = await prisma.game.findFirst({
       where: {
         OR: [
           { interrogatorId: playerId },
           { humanPlayerId: playerId },
         ],
-        status: { in: ['IN_PROGRESS', 'GUESSING'] },
+        status: { in: ['WAITING', 'IN_PROGRESS', 'GUESSING'] },
         createdAt: { gte: twoMinutesAgo },  // Only fresh games
       },
       orderBy: { createdAt: 'desc' },
@@ -31,6 +31,17 @@ export async function GET(request: NextRequest) {
     
     if (game) {
       const isInterrogator = game.interrogatorId === playerId;
+      
+      // If we are waiting for a human
+      if (game.status === 'WAITING') {
+        return NextResponse.json({ 
+          status: 'waiting', 
+          gameId: game.id,
+          yourRole: isInterrogator ? 'INTERROGATOR' : 'HUMAN' 
+        });
+      }
+
+      // If we are matched
       return NextResponse.json({
         status: 'matched',
         gameId: game.id,
@@ -39,15 +50,6 @@ export async function GET(request: NextRequest) {
         gameStatus: game.status,
         currentRound: game.currentRound,
       });
-    }
-    
-    // Check if still in queue
-    const inQueue = await prisma.matchmakingQueue.findUnique({
-      where: { playerId },
-    });
-    
-    if (inQueue) {
-      return NextResponse.json({ status: 'waiting', role: inQueue.role });
     }
     
     return NextResponse.json({ status: 'idle' });

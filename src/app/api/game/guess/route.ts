@@ -36,10 +36,15 @@ export async function POST(request: NextRequest) {
       0   // streak (not tracked yet)
     );
     
-    // Update game status
+    // Update game status and save results
     await prisma.game.update({
       where: { id: gameId },
-      data: { status: 'FINISHED' },
+      data: { 
+        status: 'FINISHED',
+        finalGuess: guess,
+        isCorrect,
+        finalScore: score
+      },
     });
     
     return NextResponse.json({

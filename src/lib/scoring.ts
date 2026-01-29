@@ -6,7 +6,7 @@
 export function calculateScore(
   isCorrect: boolean,
   timeRemaining = 0,
-  roundsPlayed = 5,
+  roundsPlayed = 3,
   streak = 0
 ): number {
   if (!isCorrect) {
@@ -20,9 +20,9 @@ export function calculateScore(
   const speedBonus = Math.round((timeRemaining / 45) * 50);
   score += speedBonus;
 
-  // Efficiency bonus - correctly guess with fewer questions (up to 25 points)
-  if (roundsPlayed < 5) {
-    const efficiencyBonus = (5 - roundsPlayed) * 5;
+  // Efficiency bonus - correctly guess with fewer questions (up to 30 points)
+  if (roundsPlayed < 3) {
+    const efficiencyBonus = (3 - roundsPlayed) * 10;
     score += efficiencyBonus;
   }
 

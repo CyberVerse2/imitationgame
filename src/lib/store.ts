@@ -55,7 +55,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   role: null,
   status: 'idle',
   currentRound: 1,
-  totalRounds: 5,
+  totalRounds: 3,
   humanSlot: null,
   messages: {},
   currentQuestion: '',

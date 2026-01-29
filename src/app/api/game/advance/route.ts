@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
     
     // Validate nextRound
     if (nextRound > game.totalRounds) {
-       // Allow going to guessing phase (status update handled separately usually, but good to check)
+       await prisma.game.update({
+         where: { id: gameId },
+         data: { status: 'GUESSING' },
+       });
        return NextResponse.json({ status: 'ready_to_guess' });
     }
 

@@ -13,63 +13,20 @@ export default function QuestionSuggestions({ onSelect, disabled }: QuestionSugg
   
   return (
     <div className="question-suggestions">
-      <p className="suggestions-label">💡 Need inspiration? Try asking:</p>
-      <div className="question-chips">
+      <div className="text-label mb-3">Suggested Queries</div>
+      <div className="flex flex-nowrap gap-2 overflow-x-auto no-scrollbar pb-2">
         {suggestions.map((q) => (
           <button
             key={q.id}
-            className="question-chip"
+            className="flex-shrink-0 px-4 py-2 rounded-xl bg-zinc-950 border border-zinc-900 text-xs font-medium text-zinc-400 hover:text-[var(--accent-cyan)] hover:border-[var(--accent-cyan)] transition-all"
             onClick={() => onSelect(q.text)}
             disabled={disabled}
             title={q.hint}
           >
-            {q.text.length > 40 ? q.text.substring(0, 37) + '...' : q.text}
+            {q.text.length > 30 ? q.text.substring(0, 27) + '...' : q.text}
           </button>
         ))}
       </div>
-      
-      <style jsx>{`
-        .question-suggestions {
-          padding: 16px;
-          background: rgba(139, 92, 246, 0.05);
-          border-radius: 12px;
-          border: 1px dashed rgba(139, 92, 246, 0.3);
-          margin-bottom: 16px;
-        }
-        
-        .suggestions-label {
-          font-size: 0.875rem;
-          color: var(--text-secondary);
-          margin-bottom: 12px;
-        }
-        
-        .question-chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .question-chip {
-          background: rgba(0, 245, 255, 0.1);
-          border: 1px solid rgba(0, 245, 255, 0.3);
-          color: var(--neon-cyan);
-          padding: 8px 12px;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        .question-chip:hover:not(:disabled) {
-          background: rgba(0, 245, 255, 0.2);
-          transform: translateY(-1px);
-        }
-        
-        .question-chip:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 }

@@ -7,95 +7,92 @@ import { prisma } from '@/lib/prisma';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { playerId, role } = await request.json();
+    const { playerId, role, gameId } = await request.json();
     
     if (!playerId || !role) {
       return NextResponse.json({ error: 'Missing playerId or role' }, { status: 400 });
     }
     
-    // Clean up stale queue entries (older than 1 minute)
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-    await prisma.matchmakingQueue.deleteMany({
+    // 1. Cleanup stale WAITING games (older than 5 minutes)
+    // This handles "ghost games" where interrogators left the waiting screen
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    await prisma.game.deleteMany({
       where: {
-        createdAt: { lt: oneMinuteAgo },
+        status: 'WAITING',
+        createdAt: { lt: fiveMinutesAgo },
       },
-    });
-    
-    // Abandon any old unfinished games for this player (older than 2 min)
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-    await prisma.game.updateMany({
-      where: {
-        OR: [
-          { interrogatorId: playerId },
-          { humanPlayerId: playerId },
-        ],
-        status: { in: ['IN_PROGRESS', 'GUESSING', 'WAITING'] },
-        createdAt: { lt: twoMinutesAgo },
-      },
-      data: { status: 'FINISHED' },
-    });
-    
-    // Remove any existing queue entry for this player (fresh start)
-    await prisma.matchmakingQueue.deleteMany({
-      where: { playerId },
     });
 
-    // FORCE KILL ALL previous active games for this player
-    // We want a fresh game every time "Find Match" is clicked
-    await prisma.game.updateMany({
-      where: {
-        OR: [
-          { interrogatorId: playerId },
-          { humanPlayerId: playerId },
-        ],
-        status: { in: ['IN_PROGRESS', 'GUESSING', 'WAITING'] },
-      },
-      data: { status: 'FINISHED' },
-    });
-    
-    // Look for a player with the opposite role
-    const oppositeRole = role === 'INTERROGATOR' ? 'HUMAN' : 'INTERROGATOR';
-    
-    const match = await prisma.matchmakingQueue.findFirst({
-      where: { role: oppositeRole },
-      orderBy: { createdAt: 'asc' },
-    });
-    
-    if (match) {
-      // Found a match! Create a game
-      const humanSlot = Math.random() < 0.5 ? 'A' : 'B';
-      
+    if (role === 'INTERROGATOR') {
+      // Check for existing active game for this interrogator
+      const existingGame = await prisma.game.findFirst({
+        where: {
+          interrogatorId: playerId,
+          status: { in: ['WAITING', 'IN_PROGRESS', 'GUESSING'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (existingGame) {
+        // If they already have a waiting or active game, just return it
+        return NextResponse.json({
+          status: existingGame.status === 'WAITING' ? 'waiting' : 'matched',
+          gameId: existingGame.id,
+          humanSlot: existingGame.humanSlot,
+          yourRole: 'INTERROGATOR',
+        });
+      }
+
+      // Create a new waiting game
       const game = await prisma.game.create({
         data: {
-          status: 'IN_PROGRESS',
-          currentRound: 1,
-          humanSlot,
-          interrogatorId: role === 'INTERROGATOR' ? playerId : match.playerId,
-          humanPlayerId: role === 'HUMAN' ? playerId : match.playerId,
+          status: 'WAITING',
+          interrogatorId: playerId,
+          totalRounds: 3,
+          humanSlot: Math.random() < 0.5 ? 'A' : 'B', // Pre-assign the human slot
         },
       });
-      
-      // Remove matched player from queue
-      await prisma.matchmakingQueue.delete({
-        where: { id: match.id },
-      });
-      
+
       return NextResponse.json({
-        status: 'matched',
+        status: 'waiting',
         gameId: game.id,
-        humanSlot,
-        yourRole: role,
+        yourRole: 'INTERROGATOR',
       });
-    } else {
-      // No match found, add to queue
-      await prisma.matchmakingQueue.create({
-        data: { playerId, role },
-      });
-      
-      return NextResponse.json({ status: 'waiting', message: 'Added to queue' });
+    } else if (role === 'HUMAN') {
+      if (!gameId) {
+        return NextResponse.json({ error: 'Human must provide a gameId to join' }, { status: 400 });
+      }
+
+      // Atomically join the game
+      try {
+        const game = await prisma.game.update({
+          where: {
+            id: gameId,
+            status: 'WAITING',
+            humanPlayerId: null,
+          },
+          data: {
+            status: 'IN_PROGRESS',
+            humanPlayerId: playerId,
+            currentRound: 1,
+          },
+        });
+
+        return NextResponse.json({
+          status: 'matched',
+          gameId: game.id,
+          humanSlot: game.humanSlot,
+          yourRole: 'HUMAN',
+        });
+      } catch (error) {
+        // Prisma error if game not found or doesn't match where clause
+        return NextResponse.json({ error: 'Game no longer available' }, { status: 410 });
+      }
     }
+
+    return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
   } catch (error) {
-    console.error('Matchmaking error:', error);
+    console.error('Matchmaking join error:', error);
     return NextResponse.json({ error: 'Matchmaking failed' }, { status: 500 });
   }
 }
@@ -108,11 +105,19 @@ export async function DELETE(request: NextRequest) {
   try {
     const { playerId } = await request.json();
     
-    await prisma.matchmakingQueue.deleteMany({
-      where: { playerId },
+    if (!playerId) {
+      return NextResponse.json({ error: 'Missing playerId' }, { status: 400 });
+    }
+
+    // Delete any waiting games for this interrogator
+    const deleted = await prisma.game.deleteMany({
+      where: {
+        interrogatorId: playerId,
+        status: 'WAITING',
+      },
     });
     
-    return NextResponse.json({ status: 'left' });
+    return NextResponse.json({ status: 'left', gamesCancelled: deleted.count });
   } catch (error) {
     console.error('Leave queue error:', error);
     return NextResponse.json({ error: 'Failed to leave queue' }, { status: 500 });

@@ -14,7 +14,7 @@ model Game {
   id              String    @id @default(cuid())
   status          GameStatus @default(WAITING)
   currentRound    Int       @default(0)
-  totalRounds     Int       @default(5)
+  totalRounds     Int       @default(3)
   humanSlot       String?   // "A" or "B" - which participant slot is human
   interrogatorId  String?   // User ID of interrogator
   humanPlayerId   String?   // User ID of human participant
@@ -23,6 +23,11 @@ model Game {
   
   messages        Message[]
   
+  // Results persistence
+  finalGuess      String?   // "A" or "B"
+  isCorrect       Boolean?
+  finalScore      Int?
+
   @@index([status])
 }
 
@@ -38,16 +43,6 @@ model Message {
   createdAt   DateTime @default(now())
   
   @@index([gameId, round])
-}
-
-// Players in matchmaking queue
-model MatchmakingQueue {
-  id        String   @id @default(cuid())
-  playerId  String   @unique
-  role      PlayerRole
-  createdAt DateTime @default(now())
-  
-  @@index([role])
 }
 
 // User stats

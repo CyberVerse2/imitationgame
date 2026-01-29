@@ -26,6 +26,9 @@ export async function GET(request: NextRequest) {
       currentRound: game.currentRound,
       totalRounds: game.totalRounds,
       humanSlot: game.humanSlot,
+      isCorrect: game.isCorrect,
+      finalGuess: game.finalGuess,
+      finalScore: game.finalScore,
     });
   } catch (error) {
     console.error('Game status error:', error);
