@@ -1,0 +1,74 @@
+// Prisma schema for Imitation Game
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Game session
+model Game {
+  id              String    @id @default(cuid())
+  status          GameStatus @default(WAITING)
+  currentRound    Int       @default(0)
+  totalRounds     Int       @default(5)
+  humanSlot       String?   // "A" or "B" - which participant slot is human
+  interrogatorId  String?   // User ID of interrogator
+  humanPlayerId   String?   // User ID of human participant
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  messages        Message[]
+  
+  @@index([status])
+}
+
+// Individual messages in a game
+model Message {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  round       Int
+  sender      String   // "interrogator", "participantA", "participantB"
+  content     String
+  isRevealed  Boolean  @default(false) // Whether this message is visible yet
+  createdAt   DateTime @default(now())
+  
+  @@index([gameId, round])
+}
+
+// Players in matchmaking queue
+model MatchmakingQueue {
+  id        String   @id @default(cuid())
+  playerId  String   @unique
+  role      PlayerRole
+  createdAt DateTime @default(now())
+  
+  @@index([role])
+}
+
+// User stats
+model User {
+  id          String   @id @default(cuid())
+  username    String?
+  gamesPlayed Int      @default(0)
+  gamesWon    Int      @default(0)
+  totalScore  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum GameStatus {
+  WAITING       // Waiting for players
+  IN_PROGRESS   // Game is active
+  GUESSING      // Waiting for interrogator's guess
+  FINISHED      // Game complete
+}
+
+enum PlayerRole {
+  INTERROGATOR
+  HUMAN
+}
